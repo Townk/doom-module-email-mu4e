@@ -1,5 +1,5 @@
 #+TITLE:   email/mu4e
-#+DATE:    April 8, 2017
+#+DATE:    July 18, 2020
 #+SINCE:   v2.0
 #+STARTUP: inlineimages
 
@@ -154,11 +154,6 @@ For =mu= *>=1.4* you need to run two commands:
 #+BEGIN_SRC sh
 mu init --maildir ~/.mail --my-address email1@example.com --my-address email2@example.com
 mu index
-#+END_SRC
-
-=mu= *<1.4* only requires one command:
-#+BEGIN_SRC sh
-mu index --maildir ~/.mail
 #+END_SRC
 
 Then configure Emacs to use your email address:

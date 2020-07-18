@@ -1,7 +1,8 @@
 ;;; email/mu4e/autoload/email.el -*- lexical-binding: t; -*-
 
 (defun +mu4e--account-color-code-mark (face)
-  "TODO"
+  "Return a standar color band to be used aside the message on
+the headers view. The bband color is given by FACE."
   (propertize
    " " 'display
    (let ((foreground (or (face-foreground face nil t) "None"))
@@ -35,7 +36,7 @@
                      )))))
 
 
-;;;###autodef
+;;;###autoload
 (defun set-email-account! (label &rest configuration)
   "Registers an email account for mu4e.
 
@@ -74,7 +75,7 @@
          `:archive' \"Archive\"
          `:trash' \"Trash\")
 
-    + `:type':: (optional) A synbol indicating what kind of
+    + `:type':: (optional) A symbol indicating what kind of
         account this is. Valid values are `gmail', `outlook',
         `default'. Default to `default'
 

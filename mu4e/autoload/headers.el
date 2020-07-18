@@ -1,7 +1,8 @@
 
-(defun +mu4e--get-flag (flag)
-  "TODO"
-  (let ((cell (cl-case flag
+(defun +mu4e--get-mark (msg-mark)
+  "Given a MSG-MARK return the the character representing such
+mark. MSG-MARK is a symbol."
+  (let ((cell (cl-case msg-mark
                 ('draft     mu4e-headers-draft-mark)
                 ('flagged   mu4e-headers-flagged-mark)
                 ('new       mu4e-headers-new-mark)
@@ -101,9 +102,9 @@
         (let* ((flags (mu4e-message-field msg :flags))
                (tinfo  (mu4e-message-field msg :thread))
                (replied-symbol (when (memq 'replied flags)
-                                 (+mu4e--get-flag 'replied)))
+                                 (+mu4e--get-mark 'replied)))
                (forwarded-symbol (when (memq 'passed flags)
-                                   (+mu4e--get-flag 'passed)))
+                                   (+mu4e--get-mark 'passed)))
                (prefix-p (not (and (s-blank-str-p replied-symbol)
                                    (s-blank-str-p forwarded-symbol))))
                (prefix (concat
@@ -111,8 +112,9 @@
                           (format " %s" replied-symbol))
                         (unless (s-blank-str-p forwarded-symbol)
                           (format " %s" forwarded-symbol))
-                        (when prefix-p
-                          "\t")))
+                        ;; (when prefix-p
+                        ;;   "\t")
+                        ))
                (width (+mu4e--width-for-func '+mu4e--header-column-subject))
                (subject (s-replace-all '(("RE: " . "")
                                          ("Re: " . "")) (mu4e-message-field msg :subject)))
@@ -131,16 +133,17 @@
         (flags (mu4e~headers-flags-str (mu4e-message-field msg :flags))))
     (concat
      (s-pad-left (- width 2) " " flags)
-     "\t")))
+     ;; "\t"
+     )))
 
 
 ;;;###autoload
 (defun +mu4e--header-column-from (msg)
   "TODO"
   (let ((width (+mu4e--width-for-func '+mu4e--header-column-from)))
-    (concat (when +mu4e-message-typing
-              (format "%s " (plist-get +mu4e-message-type-icons
-                                       (funcall +mu4e-message-type-func msg))))
+    (concat (when +mu4e-message-use-category
+              (format "%s " (plist-get +mu4e-message-category-icons
+                                       (funcall +mu4e-message-category-func msg))))
             (when +mu4e-account-color-coding
               (format "%s " (+mu4e--message-color-code-mark msg)))
             (+mu4e--headers-from msg width))))
@@ -151,8 +154,8 @@
   "TODO"
   (let ((flags (mu4e-message-field msg :flags)))
     (cond
-     ((memq 'new flags)    (+mu4e--get-flag 'new))
-     ((memq 'unread flags) (+mu4e--get-flag 'unread))
+     ((memq 'new flags)    (+mu4e--get-mark 'new))
+     ((memq 'unread flags) (+mu4e--get-mark 'unread))
      (t                    " "))))
 
 
@@ -196,6 +199,36 @@
        (t " ")))))
 
 
+(defun +mu4e-headers--string-size (str)
+  "Return the width in pixels of a string in the current
+window's default font. If the font is mono-spaced, this
+will also be the width of all other printable characters."
+  (let ((window (selected-window))
+        (remapping face-remapping-alist))
+    (with-temp-buffer
+      (make-local-variable 'face-remapping-alist)
+      (setq face-remapping-alist remapping)
+      (set-window-buffer window (current-buffer))
+      (insert str)
+      (car (window-text-pixel-size)))))
+
+
+(cl-defun +mu4e-headers-mark-icon (name &key set colour face height v-adjust)
+  "Convert :icon declaration to icon"
+  (when +mu4e-use-all-the-icons
+    (let* ((icon-set (intern (concat "all-the-icons-" (or set "material"))))
+           (v-adjust (or v-adjust 0.02))
+           (height (or height 0.8))
+           (face (or face (intern (concat "all-the-icons-" colour))))
+           (icon (if colour
+                     (apply icon-set `(,name :face ,face :height ,height :v-adjust ,v-adjust))
+                   (apply icon-set `(,name  :height ,height :v-adjust ,v-adjust))))
+           (icon-width (+mu4e-headers--string-size icon))
+           (space-width (+mu4e-headers--string-size " "))
+           (space-factor (- 2 (/ (float icon-width) space-width))))
+      (concat (propertize " " 'display `(space . (:width ,space-factor))) icon))))
+
+
 ;;;###autoload
 (defun +mu4e-headers-mark (type)
   "Returns a cons-cell to be used as a headers mark. The TYPE is a symbol representing the
@@ -214,26 +247,26 @@ Supported marks are:
  + `new'
  + `unread'"
   (pcase type
-    ('draft      `("D" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "edit" :height 0.7 :v-adjust 0.1) "")))
-    ('flagged    `("F" . ,(if +mu4e-use-all-the-icons (all-the-icons-octicon "pin" :height 0.7 :v-adjust 0.1) "")))
-    ('forwarded  `("P" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "share" :height 0.7 :v-adjust 0.1) "")))
-    ('replied    `("R" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "reply" :height 0.7 :v-adjust 0.1) "")))
-    ('trashed    `("T" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "delete" :height 0.7 :v-adjust 0.1) "")))
-    ('attachment `("a" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "attach_file" :height 0.7 :v-adjust 0.0) "")))
-    ('encrypted  `("x" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "enhanced_encryption" :height 0.7 :v-adjust 0.1) "")))
-    ('signed     `("s" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "verified_user" :height 0.7 :v-adjust 0.1) "")))
+    ('draft      `("D" . ,(or (+mu4e-headers-mark-icon "edit" :height 0.7 :v-adjust 0.1) "")))
+    ('trashed    `("T" . ,(or (+mu4e-headers-mark-icon "delete" :height 0.7 :v-adjust 0.1) "")))
+    ('attachment `("a" . ,(or (+mu4e-headers-mark-icon "attach_file" :height 0.7) "")))
+    ('encrypted  `("x" . ,(or (+mu4e-headers-mark-icon "enhanced_encryption" :height 0.5 :v-adjust 0.1) "")))
+    ('signed     `("s" . ,(or (+mu4e-headers-mark-icon "verified_user" :height 0.5 :v-adjust 0.1) "")))
+    ('read       `("!" . ,(or (+mu4e-headers-mark-icon "drafts" :height 0.5 :v-adjust 0.1) "◼")))
+    ('markunread `("?" . ,(or (+mu4e-headers-mark-icon "email" :height 0.5 :v-adjust 0.1) "◻")))
+    ('move       `("m" . ,(or (+mu4e-headers-mark-icon "local_shipping" :height 0.5 :v-adjust 0.1) "▷")))
+    ('something  `("*" . ,(or (+mu4e-headers-mark-icon "check" :height 0.5 :v-adjust 0.1) "✱")))
+    ('action     `("a" . ,(or (+mu4e-headers-mark-icon "settings" :height 0.5 :v-adjust 0.1) "◯")))
+    ('flagged    `("F" . ,(or (+mu4e-headers-mark-icon "pin" :set "octicon" :height 0.7 :v-adjust 0.1) "")))
+    ('forwarded  `("P" . ,(or (+mu4e-headers-mark-icon "share" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
+    ('replied    `("R" . ,(or (+mu4e-headers-mark-icon "reply" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
+    ('refile     `("r" . ,(or (+mu4e-headers-mark-icon "archive" :set "faicon" :height 0.5 :v-adjust 0.1) "▶")))
+    ('trash      `("d" . ,(or (+mu4e-headers-mark-icon "recycle" :set "faicon" :height 0.5 :v-adjust 0.1) "▼")))
+    ('untrash    `("=" . ,(or (+mu4e-headers-mark-icon "inbox" :set "faicon" :height 0.5 :v-adjust 0.1) "▲")))
+    ('delete     `("D" . ,(or (+mu4e-headers-mark-icon "trash-o" :set "faicon" :height 0.5 :v-adjust 0.1) "x")))
+    ('flag       `("+" . ,(or (+mu4e-headers-mark-icon "thumb-tack" :set "faicon" :height 0.5 :v-adjust 0.1) "✚")))
+    ('unflag     `("-" . ,(or (+mu4e-headers-mark-icon "minus-circle" :set "faicon" :height 0.5 :v-adjust 0.1) "➖")))
+    ('new        `("N" . ,(or (+mu4e-headers-mark-icon "fiber_manual_record" :height 0.5 :face '+mu4e-mail-status-mark-face) "")))
+    ('unread     `("U" . ,(or (+mu4e-headers-mark-icon "radio_button_unchecked" :height 0.4 :face '+mu4e-mail-status-mark-face) "")))
     ('seen       " ")
-    ('new        `("N" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "fiber_manual_record" :height 0.5 :face '+mu4e-mail-status-mark-face) "")))
-    ('unread     `("U" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "radio_button_unchecked" :height 0.4 :face '+mu4e-mail-status-mark-face) "")))
-    ('refile     `("r" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "archive" :height 0.5 :v-adjust 0.1) "▶")))
-    ('trash      `("d" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "recycle" :height 0.5 :v-adjust 0.1) "▼")))
-    ('untrash    `("=" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "inbox" :height 0.5 :v-adjust 0.1) "▲")))
-    ('delete     `("D" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "trash-o" :height 0.5 :v-adjust 0.1) "x")))
-    ('flag       `("+" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "thumb-tack" :height 0.5 :v-adjust 0.1) "✚")))
-    ('unflag     `("-" . ,(if +mu4e-use-all-the-icons (all-the-icons-faicon "minus-circle" :height 0.5 :v-adjust 0.1) "➖")))
-    ('read       `("!" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "drafts" :height 0.5 :v-adjust 0.1) "◼")))
-    ('markunread `("?" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "email" :height 0.5 :v-adjust 0.1) "◻")))
-    ('move       `("m" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "local_shipping" :height 0.5 :v-adjust 0.1) "▷")))
-    ('unmark     " ")
-    ('something  `("*" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "check" :height 0.5 :v-adjust 0.1) "✱")))
-    ('action     `("a" . ,(if +mu4e-use-all-the-icons (all-the-icons-material "settings" :height 0.5 :v-adjust 0.1) "◯")))))
+    ('unmark     " ")))

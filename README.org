@@ -1,0 +1,38 @@
+#+TITLE:  doom-module-email-mu4e
+
+This package is a refactor of the current =mu4e= module on doom-emacs. It tries to modernize, and
+enable more options to the =mu4e= user.
+
+The code in this repository is a mix between [[https://github.com/hlissner][Henrik Lissner]]'s original code, [[https://github.com/tecosaur/emacs-config/blob/master/config.org][@tecosaur config]], and
+some of my personal changes. BTW, if you didn't check [[https://github.com/tecosaur][@tecosaur]]'s config, do yourself a favor, and
+spend some quality Elisp time there!
+
+* Features
+
+TBD
+
+* Dependencies
+
+TBD
+
+* Installation
+
+To install this module into your doom-emacs confir, follow these instructions:
+
+```sh
+cd ~/.config/doom
+mkdir modules
+cd modules
+git clone https://github.com/Townk/doom-module-email-mu4e.git email
+```
+
+* Extras
+
+TBD
+
+TBD
+
+* Disclaimer
+
+The icon asset used on the alert messages was created by Jonathan and distributed under public
+domain license. You can find its source at his [[https://commons.wikimedia.org/wiki/File:Email_icon.svg][wikimedia page]].

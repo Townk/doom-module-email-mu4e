@@ -5,7 +5,10 @@
   (interactive)
   (require 'mu4e)
   (if (featurep! :ui workspaces)
-      (+workspace-switch +mu4e-workspace-name t)
+      (progn
+        (unless (+workspace-buffer-list)
+          (+workspace-delete (+workspace-current-name)))
+        (+workspace-switch +mu4e-workspace-name t))
     (setq +mu4e--old-wconf (current-window-configuration))
     (delete-other-windows)
     (switch-to-buffer (doom-fallback-buffer)))
@@ -25,10 +28,12 @@
 
 ;;;###autoload
 (defun +mu4e-init-h ()
+  "TODO"
   (add-hook 'kill-buffer-hook #'+mu4e-kill-mu4e-h nil t))
 
 
 (defun +mu4e-kill-mu4e-h ()
+  "TODO"
   (cond
    ((and (featurep! :ui workspaces) (+workspace-exists-p +mu4e-workspace-name))
     (+workspace/delete +mu4e-workspace-name))

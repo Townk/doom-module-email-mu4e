@@ -76,24 +76,30 @@
                                        +mu4e-account-brown-face
                                        +mu4e-account-green-face
                                        +mu4e-account-pink-face)
-  "TODO")
+  "If user chooses to use account color coding but dooes not
+  define a color if one of the accounts, this array will be used
+  to cycle through it and gete the next color on the sequence.")
 
-(defvar +mu4e-message-typing t
-  "TODO")
+(defvar +mu4e-message-use-category t
+  "Flag indicating if mu4e should categorize message based on a
+  custom predicate defined by `+mu4e-message-category-func'")
 
 (setq +mu4e-account-emails '()
       +mu4e-account-mark "")
 
 (when (featurep! :ui workspaces)
   (defvar +mu4e-workspace-name "*Email*"
-    "TODO")
+    "When using the worspace feature, thiiis variable holds the
+    name given to the new workspace created where mu4e will
+    live.")
 
   (defvar +mu4e--old-wconf nil
-    "TODO"))
+    "Auxiliar variabble to store windo configuration when using
+    workspaces."))
 
 
 (defvar +mu4e-update-interval nil
-  "TODO")
+  "How many seconds between mail retrivals.")
 
 ;;
 ;;; Functions
@@ -105,7 +111,7 @@
 (use-package! mu4e
   :commands mu4e mu4e-compose-new message-mail
   :init
-  (provide 'html2text) ; disable obsolete package
+  (provide 'html2text)                  ; disable obsolete package
 
   :config
   (custom-set-faces!
@@ -114,14 +120,18 @@
     '(mu4e-replied-face :inherit mu4e-header-face)
     '(mu4e-draft-face :italic t :foreground "#777777"))
 
-  (defvar +mu4e-message-type-icons
+  (defvar +mu4e-message-category-icons
     `(default ,(+mu4e--header-message-type-mark 'default)
        newsletter ,(+mu4e--header-message-type-mark 'newsletter)
        notification ,(+mu4e--header-message-type-mark 'notification))
-    "TODO")
+    "Plist associatinig a symbol to an icon. This icon must be on
+    a string format and supports unicode and all the icons
+    strings.")
 
-  (defvar +mu4e-message-type-func '+mu4e--message-type
-    "TODO")
+  (defvar +mu4e-message-category-func '+mu4e--message-type
+    "Function called with MSG as its only argument. The function
+    must return one of the symbols stored as key on
+    `+mu4e-message-category-icons'")
 
   (pcase +mu4e-backend
     (`mbsync
@@ -138,6 +148,7 @@
                                     (t (concat maildir-dir ".attachments"))))
         mu4e-update-interval +mu4e-update-interval
         mu4e-compose-format-flowed t    ; visual-line-mode + auto-fill upon sending
+        mu4e-view-use-gnus t
         mu4e-view-show-addresses t
         mu4e-sent-messages-behavior 'sent
         mu4e-hide-index-messages t
@@ -345,7 +356,8 @@
                      :function '+mu4e--header-column-subject))
 
   (defadvice! +mu4e--refresh-current-view-a (&rest _)
-    :after #'mu4e-mark-execute-all (mu4e-headers-rerun-search))
+    :after #'mu4e-mark-execute-all
+    (mu4e-headers-rerun-search))
 
   ;; Wrap text in messages
   (setq-hook! 'mu4e-view-mode-hook truncate-lines nil)
@@ -362,41 +374,182 @@
   (when (fboundp 'imagemagick-register-types)
     (imagemagick-register-types))
 
-  (when (and (featurep! :lang org) (featurep! +org))
-    (org-msg-mode-mu4e)))
+  (map! :map mu4e-headers-mode-map
+        :after mu4e
+        :v "*" #'mu4e-headers-mark-for-something
+        :v "!" #'mu4e-headers-mark-for-read
+        :v "?" #'mu4e-headers-mark-for-unread
+        :v "u" #'mu4e-headers-mark-for-unmark)
+  )
 
 
 (use-package! mu4e-alert
-  :defer-incrementally t
   :if (or (featurep! +alert) (and (featurep! :ui modeline) (featurep! +modeline)))
+  :after mu4e
   :config
-  (mu4e-alert-set-default-style 'notifier)
+
   (when (featurep! +alert)
-    (mu4e-alert-enable-notifications))
+    (pcase system-type
+      ('darwin (alert-define-style 'doom-notifier
+                                   :title "Notify using terminal-notifier"
+                                   :notifier #'+mu4e-alert--terminal-notifier))
+      (_ (alert-define-style 'doom-notifier
+                             :title "Notify using libnotify"
+                             :notifier #'alert-libnotify-notify)))
+
+    (mu4e-alert-enable-notifications)
+    (mu4e-alert-set-default-style 'doom-notifier)
+    (setq mu4e-alert-email-notification-types '(subjects)
+          ;; icon from https://commons.wikimedia.org/wiki/File:Email_icon.svg
+          mu4e-alert-icon (f-join (doom-module-locate-path :email "mu4e")
+                                  "resources"
+                                  "ic-alert-64.png")
+          mu4e-alert-grouped-mail-notification-formatter #'+mu4e-alert--notification-formatter))
+
   (when (and (featurep! :ui modeline) (featurep! +modeline))
-    (setq doom-modeline-mu4e t)
-    (mu4e-alert-enable-mode-line-display)))
+    (mu4e-alert-enable-mode-line-display)
+    (setq doom-modeline-mu4e t
+          mu4e-alert-modeline-formatter #'+mu4e-alert--iconised-modeline-formatter)))
 
 
 (use-package! org-msg
   :if (and (featurep! :lang org) (featurep! +org))
-  :commands org-msg-mode-mu4e
-  ;; :hook (mu4e-compose-mode . org-msg-edit-mode)
-  :init
+  :after mu4e
+  :config
   (setq org-msg-options "html-postamble:nil H:5 num:nil ^:{} toc:nil author:nil email:nil \\n:t"
         org-msg-startup "fold hidestars indent inlineimages"
-        org-msg-text-plain-alternative t)
+        org-msg-greeting-fmt "\nHi %s,\n\n"
+        org-msg-greeting-name-limit 3
+        org-msg-text-plain-alternative t
+        org-msg-enforce-css +org-msg--doom-style)
 
-  :config
-  (map! :localleader
-        :map org-msg-edit-mode-map
-        :desc "send and exit" "s" #'org-ctrl-c-ctrl-c
-        :desc "kill buffer"   "d" #'org-msg-edit-kill-buffer-mu4e
-        :desc "save draft"    "S" #'message-dont-send
-        :desc "attach"        "a" #'org-msg-attach)
+  (map! :map org-msg-edit-mode-map
+        (:localleader
+         :desc "send and exit" "s" #'org-ctrl-c-ctrl-c
+         :desc "kill buffer"   "d" #'org-msg-edit-kill-buffer-mu4e
+         :desc "save draft"    "S" #'message-dont-send
+         :desc "attach"        "a" #'org-msg-attach
 
-  (org-msg-mode 1)
-  (add-hook! 'mu4e-compose-mode 'org-msg-edit-mode))
+         (:prefix "g"
+          :desc "go to body"              "b" #'org-msg-goto-body
+          :desc "go to subject"           "s" #'message-goto-subject
+          :desc "go to addresee"          "t" #'message-goto-to
+          :desc "go to carbon copy"       "c" #'message-goto-cc
+          :desc "go to forward copy"      "f" #'message-goto-fcc
+          :desc "go to blind carbon copy" "B" #'message-goto-bcc)))
+
+  (org-msg-mode 1))
+
+(defconst +org-msg--doom-style
+  (let* ((font-family '(font-family . "-apple-system, BlinkMacSystemFont, \"Segoe UI\",\
+                                             Roboto, Oxygen, Ubuntu, Cantarell, \"Fira Sans\",\
+                                             \"Droid Sans\", \"Helvetica Neue\", Arial, sans-serif,\
+                                             \"Apple Color Emoji\", \"Segoe UI Emoji\",\
+                                             \"Segoe UI Symbol\";"))
+         (monospace-font '(font-family . "SFMono-Regular, Menlo, Monaco, Consolas,\
+                                                \"Liberation Mono\", \"Courier New\", monospace;"))
+         (font-size '(font-size . "11pt"))
+         (font `(,font-family ,font-size))
+         (line-height '(line-height . "1.2"))
+         (theme-color "#2654BF")
+         (bold '(font-weight . "bold"))
+         (color `(color . ,theme-color))
+         (table `((margin-top . "6px") (margin-bottom . "6px")
+                  (border-left . "none") (border-right . "none")
+                  (border-top . "2px solid #222222") (border-bottom . "2px solid #222222")
+                  ))
+         (ftl-number `(,color ,bold (text-align . "left")))
+         (inline-modes '(asl c c++ conf cpp csv diff ditaa emacs-lisp
+                             fundamental ini json makefile man org plantuml
+                             python sh xml))
+         (inline-src `((background-color . "rgba(27,31,35,.05)")
+                       (border-radius . "3px")
+                       (padding . ".2em .4em")
+                       (font-size . "90%") ,monospace-font
+                       (margin . 0)))
+         (code-src
+          (mapcar (lambda (mode)
+                    `(code ,(intern (concat "src src-" (symbol-name mode)))
+                           ,inline-src))
+                  inline-modes)))
+    `((del nil ((color . "grey") (border-left . "none")
+                (text-decoration . "line-through") (margin-bottom . "0px")
+                (margin-top . "10px") (line-height . "11pt")))
+      (a nil (,color))
+      (a reply-header ((color . "black") (text-decoration . "none")))
+      (div reply-header ((padding . "3.0pt 0in 0in 0in")
+                         (border-top . "solid #e1e1e1 1.0pt")
+                         (margin-bottom . "20px")))
+      (span underline ((text-decoration . "underline")))
+      (li nil (,line-height (margin-bottom . "0px")
+                            (margin-top . "2px")))
+      (nil org-ul ((list-style-type . "square")))
+      (nil org-ol (,@font ,line-height (margin-bottom . "0px")
+                          (margin-top . "0px") (margin-left . "30px")
+                          (padding-top . "0px") (padding-left . "5px")))
+      (nil signature (,@font (margin-bottom . "20px")))
+      (blockquote nil ((padding . "0px 10px") (margin-left . "10px")
+                       (margin-top . "20px") (margin-bottom . "0")
+                       (border-left . "3px solid #ccc") (font-style . "italic")
+                       (background . "#f9f9f9")))
+      (code nil (,font-size ,monospace-font (background . "#f9f9f9")))
+      ,@code-src
+      (nil linenr ((padding-right . "1em")
+                   (color . "black")
+                   (background-color . "#aaaaaa")))
+      (pre nil ((line-height . "1.2")
+                (color . ,(doom-color 'fg))
+                (background-color . ,(doom-color 'bg))
+                (margin . "4px 0px 8px 0px")
+                (padding . "8px 12px")
+                (width . "95%")
+                (border-radius . "5px")
+                (font-weight . "500")
+                ,monospace-font))
+      (div org-src-container ((margin-top . "10px")))
+      (nil figure-number ,ftl-number)
+      (nil table-number)
+      (caption nil ((text-align . "left")
+                    (background . ,theme-color)
+                    (color . "white")
+                    ,bold))
+      (nil t-above ((caption-side . "top")))
+      (nil t-bottom ((caption-side . "bottom")))
+      (nil listing-number ,ftl-number)
+      (nil figure ,ftl-number)
+      (nil org-src-name ,ftl-number)
+      (img nil ((vertical-align . "middle")
+                (max-width . "100%")))
+      (img latex-fragment ((transform . ,(format "translateY(-1px) scale(%.3f)"
+                                                 (/ 1.0 (if (boundp 'preview-scale)
+                                                            preview-scale 1.4))))
+                           (margin . "0 -0.35em")))
+      (table nil (,@table ,line-height (border-collapse . "collapse")))
+      (th nil ((border . "none") (border-bottom . "1px solid #222222")
+               (background-color . "#EDEDED") (font-weight . "500")
+               (padding . "3px 10px")))
+      (td nil (,@table (padding . "1px 10px")
+                       (background-color . "#f9f9f9") (border . "none")))
+      (td org-left ((text-align . "left")))
+      (td org-right ((text-align . "right")))
+      (td org-center ((text-align . "center")))
+      (kbd nil ((border . "1px solid #d1d5da") (border-radius . "3px")
+                (box-shadow . "inset 0 -1px 0 #d1d5da") (background-color . "#fafbfc")
+                (color . "#444d56") (padding . "3px 5px") (display . "inline-block")))
+      (div outline-text-4 ((margin-left . "15px")))
+      (div outline-4 ((margin-left . "10px")))
+      (h4 nil ((margin-bottom . "0px") (font-size . "11pt")))
+      (h3 nil ((margin-bottom . "0px")
+               ,color (font-size . "14pt")))
+      (h2 nil ((margin-top . "20px") (margin-bottom . "20px")
+               ,color (font-size . "18pt")))
+      (h1 nil ((margin-top . "20px")
+               (margin-bottom . "0px") ,color (font-size . "24pt")))
+      (p nil ((text-decoration . "none") (margin-bottom . "0px")
+              (margin-top . "10px") (line-height . "11pt") ,font-size
+              (max-width . "100ch")))
+      (b nil ((font-weight . "500") (color . ,theme-color)))
+      (div nil (,@font (line-height . "12pt"))))))
 
 
 ;;
