@@ -223,14 +223,32 @@ will also be the width of all other printable characters."
       (car (window-text-pixel-size)))))
 
 
-(cl-defun +mu4e-headers-mark-icon (name &key set colour face height v-adjust)
+(cl-defun +mu4e-header--colorise (str &key face)
+  (let* ((str-sum (apply #'+ (mapcar (lambda (c) (% c 3)) str)))
+         (color (or face (nth (% str-sum (length +mu4e-header--colorised-faces))
+                              +mu4e-header--colorised-faces))))
+    (put-text-property 0 (length str) 'face color str)
+    str))
+
+
+(defvar +mu4e-header--colorised-faces
+  '(all-the-icons-lblue
+    all-the-icons-purple
+    all-the-icons-blue-alt
+    all-the-icons-green
+    all-the-icons-maroon
+    all-the-icons-yellow
+    all-the-icons-orange))
+
+
+(cl-defun +mu4e-headers--def-mark-icon (name &key set color face height v-adjust)
   "Convert :icon declaration to icon"
   (when +mu4e-use-all-the-icons
     (let* ((icon-set (intern (concat "all-the-icons-" (or set "material"))))
            (v-adjust (or v-adjust 0.02))
            (height (or height 0.8))
-           (face (or face (intern (concat "all-the-icons-" colour))))
-           (icon (if colour
+           (face (or face (intern (concat "all-the-icons-" color))))
+           (icon (if (or color face)
                      (apply icon-set `(,name :face ,face :height ,height :v-adjust ,v-adjust))
                    (apply icon-set `(,name  :height ,height :v-adjust ,v-adjust))))
            (icon-width (+mu4e-header--string-size icon))
@@ -257,26 +275,26 @@ Supported marks are:
  + `new'
  + `unread'"
   (pcase type
-    ('draft      `("D" . ,(or (+mu4e-headers-mark-icon "edit" :height 0.7 :v-adjust 0.1) "")))
-    ('trashed    `("T" . ,(or (+mu4e-headers-mark-icon "delete" :height 0.7 :v-adjust 0.1) "")))
-    ('attachment `("a" . ,(or (+mu4e-headers-mark-icon "attach_file" :height 0.7) "")))
-    ('encrypted  `("x" . ,(or (+mu4e-headers-mark-icon "enhanced_encryption" :height 0.5 :v-adjust 0.1) "")))
-    ('signed     `("s" . ,(or (+mu4e-headers-mark-icon "verified_user" :height 0.5 :v-adjust 0.1) "")))
-    ('read       `("!" . ,(or (+mu4e-headers-mark-icon "drafts" :height 0.5 :v-adjust 0.1) "◼")))
-    ('markunread `("?" . ,(or (+mu4e-headers-mark-icon "email" :height 0.5 :v-adjust 0.1) "◻")))
-    ('move       `("m" . ,(or (+mu4e-headers-mark-icon "local_shipping" :height 0.5 :v-adjust 0.1) "▷")))
-    ('something  `("*" . ,(or (+mu4e-headers-mark-icon "check" :height 0.5 :v-adjust 0.1) "✱")))
-    ('action     `("a" . ,(or (+mu4e-headers-mark-icon "settings" :height 0.5 :v-adjust 0.1) "◯")))
-    ('flagged    `("F" . ,(or (+mu4e-headers-mark-icon "pin" :set "octicon" :height 0.7 :v-adjust 0.1) "")))
-    ('forwarded  `("P" . ,(or (+mu4e-headers-mark-icon "share" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
-    ('replied    `("R" . ,(or (+mu4e-headers-mark-icon "reply" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
-    ('refile     `("r" . ,(or (+mu4e-headers-mark-icon "archive" :set "faicon" :height 0.5 :v-adjust 0.1) "▶")))
-    ('trash      `("d" . ,(or (+mu4e-headers-mark-icon "recycle" :set "faicon" :height 0.5 :v-adjust 0.1) "▼")))
-    ('untrash    `("=" . ,(or (+mu4e-headers-mark-icon "inbox" :set "faicon" :height 0.5 :v-adjust 0.1) "▲")))
-    ('delete     `("D" . ,(or (+mu4e-headers-mark-icon "trash-o" :set "faicon" :height 0.5 :v-adjust 0.1) "x")))
-    ('flag       `("+" . ,(or (+mu4e-headers-mark-icon "thumb-tack" :set "faicon" :height 0.5 :v-adjust 0.1) "✚")))
-    ('unflag     `("-" . ,(or (+mu4e-headers-mark-icon "minus-circle" :set "faicon" :height 0.5 :v-adjust 0.1) "➖")))
-    ('new        `("N" . ,(or (+mu4e-headers-mark-icon "fiber_manual_record" :height 0.5 :face '+mu4e-mail-status-mark-face) "")))
-    ('unread     `("U" . ,(or (+mu4e-headers-mark-icon "radio_button_unchecked" :height 0.4 :face '+mu4e-mail-status-mark-face) "")))
+    ('draft      `("D" . ,(or (+mu4e-headers--def-mark-icon "edit" :height 0.7 :v-adjust 0.1 :color "dyellow") "")))
+    ('trashed    `("T" . ,(or (+mu4e-headers--def-mark-icon "delete" :height 0.7 :v-adjust 0.1) "")))
+    ('attachment `("a" . ,(or (+mu4e-headers--def-mark-icon "attach_file" :height 0.7 :color "dblue") "")))
+    ('encrypted  `("x" . ,(or (+mu4e-headers--def-mark-icon "enhanced_encryption" :height 0.5 :v-adjust 0.1 :color "yellow") "")))
+    ('signed     `("s" . ,(or (+mu4e-headers--def-mark-icon "verified_user" :height 0.5 :v-adjust 0.1 :color "lgreen") "")))
+    ('read       `("!" . ,(or (+mu4e-headers--def-mark-icon "drafts" :height 0.5 :v-adjust 0.1) "◼")))
+    ('markunread `("?" . ,(or (+mu4e-headers--def-mark-icon "email" :height 0.5 :v-adjust 0.1) "◻")))
+    ('move       `("m" . ,(or (+mu4e-headers--def-mark-icon "local_shipping" :height 0.5 :v-adjust 0.1) "▷")))
+    ('something  `("*" . ,(or (+mu4e-headers--def-mark-icon "check" :height 0.5 :v-adjust 0.1) "✱")))
+    ('action     `("a" . ,(or (+mu4e-headers--def-mark-icon "settings" :height 0.5 :v-adjust 0.1) "◯")))
+    ('flagged    `("F" . ,(or (+mu4e-headers--def-mark-icon "pin" :set "octicon" :height 0.7 :v-adjust 0.1 :color "orange") "")))
+    ('forwarded  `("P" . ,(or (+mu4e-headers--def-mark-icon "share" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
+    ('replied    `("R" . ,(or (+mu4e-headers--def-mark-icon "reply" :set "faicon" :height 0.7 :v-adjust 0.1) "")))
+    ('refile     `("r" . ,(or (+mu4e-headers--def-mark-icon "archive" :set "faicon" :height 0.5 :v-adjust 0.1) "▶")))
+    ('trash      `("d" . ,(or (+mu4e-headers--def-mark-icon "recycle" :set "faicon" :height 0.5 :v-adjust 0.1) "▼")))
+    ('untrash    `("=" . ,(or (+mu4e-headers--def-mark-icon "inbox" :set "faicon" :height 0.5 :v-adjust 0.1) "▲")))
+    ('delete     `("D" . ,(or (+mu4e-headers--def-mark-icon "trash-o" :set "faicon" :height 0.5 :v-adjust 0.1) "x")))
+    ('flag       `("+" . ,(or (+mu4e-headers--def-mark-icon "thumb-tack" :set "faicon" :height 0.5 :v-adjust 0.1) "✚")))
+    ('unflag     `("-" . ,(or (+mu4e-headers--def-mark-icon "minus-circle" :set "faicon" :height 0.5 :v-adjust 0.1) "➖")))
+    ('new        `("N" . ,(or (+mu4e-headers--def-mark-icon "fiber_manual_record" :height 0.5 :face '+mu4e-mail-status-mark-face) "")))
+    ('unread     `("U" . ,(or (+mu4e-headers--def-mark-icon "radio_button_unchecked" :height 0.4 :face '+mu4e-mail-status-mark-face) "")))
     ('seen       " ")
     ('unmark     " ")))

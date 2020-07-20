@@ -115,10 +115,11 @@
 
   :config
   (custom-set-faces!
-    '(mu4e-header-highlight-face :background "#36383c")
-    '(mu4e-unread-face :foreground "#9FB8C7" :bold t)
-    '(mu4e-replied-face :inherit mu4e-header-face)
-    '(mu4e-draft-face :italic t :foreground "#777777"))
+    `(mu4e-header-highlight-face :background "#36383c")
+    `(mu4e-unread-face :foreground "#f5f6f5")
+    `(mu4e-replied-face :inherit mu4e-header-face)
+    `(mu4e-flagged-face :inherit mu4e-header-face)
+    `(mu4e-draft-face :italic t :inherit mu4e-footer-face))
 
   (defvar +mu4e-message-category-icons
     `(default ,(+mu4e--header-message-type-mark 'default)

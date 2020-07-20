@@ -143,6 +143,7 @@ the headers view. The bband color is given by FACE."
                                (org-msg-signature      . ,signature)
                                (mu4e-compose-signature-auto-include . ,(not (null signature)))
 
+                               (+mu4e-account-face     . ,face)
                                (+mu4e-account-mark     . ,(+mu4e--account-color-code-mark face))
                                (+mu4e-account-emails   . ,all-emails)
 
