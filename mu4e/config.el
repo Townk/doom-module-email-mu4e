@@ -329,6 +329,13 @@
                      :function '+mu4e--header-column-new-status))
 
   (add-to-list 'mu4e-header-info-custom
+               (list :recipnum
+                     :name "Number of recipients"
+                     :shortname "  "
+                     :help "Number of recipients for this message"
+                     :function '+mu4e--header-column-recipnum))
+
+  (add-to-list 'mu4e-header-info-custom
                (list :symbol-from
                      :name "From or to"
                      :shortname " From / To"
@@ -345,6 +352,13 @@
                      (concat "Display all flags associated with "
                              "the message.")
                      :function '+mu4e--header-column-flags))
+
+  (add-to-list 'mu4e-header-info-custom
+               (list :folder
+                     :name "Folder"
+                     :shortname "Folder"
+                     :help "Lowest level folder"
+                     :function '+mu4e--header-column-folder))
 
   (add-to-list 'mu4e-header-info-custom
                (list :symbol-subject
