@@ -1,3 +1,22 @@
+;;;###autoload
+(defadvice! +mu4e-headers--jump-to-maildir (maildir)
+  "Show the messages in maildir (user is prompted to ask what
+maildir)."
+  :override 'mu4e~headers-jump-to-maildir
+  (interactive
+   (let ((maildir (mu4e-ask-maildir "Jump to maildir: ")))
+     (list maildir)))
+  (when maildir
+    (setq +mu4e-headers--transient-fields +mu4e-folder-headers-fields)
+    (mu4e-mark-handle-when-leaving)
+    (mu4e-headers-search (format "maildir:\"%s\"" maildir))))
+
+
+;;;###autoload
+(defun +mu4e-headers--adjust-fields-h (&rest args)
+  (setq mu4e-headers-fields (or +mu4e-headers--transient-fields +mu4e-normal-headers-fields)
+        +mu4e-headers--transient-fields nil))
+
 
 (defun +mu4e--get-mark (msg-mark)
   "Given a MSG-MARK return the the character representing such

@@ -104,6 +104,48 @@
   "How many seconds between mail retrivals.")
 
 
+(defvar +mu4e-headers--transient-fields nil
+  "What fields should be shown on the headers view the next time
+  we perform a search on mu4e.")
+
+
+(defvar +mu4e-normal-headers-fields (if +mu4e-account-color-coding
+                                        '((:status . 2)
+                                          (:symbol-from . 30)
+                                          (:aligned-flags . 6)
+                                          (:recipnum . 2)
+                                          (:folder . 6)
+                                          (:symbol-subject . 82)
+                                          (:human-date . 12)
+                                          )
+                                      '((:account . 10)
+                                        (:status . 2)
+                                        (:symbol-from . 24)
+                                        (:aligned-flags . 6)
+                                        (:recipnum . 2)
+                                        (:folder . 6)
+                                        (:symbol-subject . 55)
+                                        (:human-date . 12)
+                                        ))
+  "A list of fields to display on headers view.
+
+Normally, the value of this variable is set to the
+`mu4e-headers-fields' variable, but when
+`+mu4e-headers--transient-fields' is not nil, this variable is
+used to restore the normal fields to be displayed.")
+
+
+(defvar +mu4e-folder-headers-fields '((:status . 2)
+                                      (:symbol-from . 30)
+                                      (:aligned-flags . 6)
+                                      (:recipnum . 2)
+                                      (:symbol-subject . 82)
+                                      (:human-date . 12))
+  "A list of fields to display on headers view.
+
+The fields in this variable are used when we navigate directly to
+a maildir. This is usually used to hide the folder column which
+does not make much sense in this case.")
 
 
 ;;; Packages
@@ -181,21 +223,7 @@
   (setq mail-user-agent 'mu4e-user-agent
         message-mail-user-agent 'mu4e-user-agent)
 
-
-  (if +mu4e-account-color-coding
-      (setq mu4e-headers-fields '((:status . 1)
-                                  (:symbol-from . 50)
-                                  (:aligned-flags . 6)
-                                  (:symbol-subject . 82)
-                                  (:human-date . 12)
-                                  ))
-    (setq mu4e-headers-fields '((:account . 12)
-                                (:status . 1)
-                                (:symbol-from . 44)
-                                (:aligned-flags . 6)
-                                (:symbol-subject . 55)
-                                (:human-date . 12)
-                                )))
+  (setq mu4e-headers-fields +mu4e-normal-headers-fields)
 
   (setq mu4e-headers-visible-flags '(draft
                                      flagged
@@ -572,6 +600,7 @@
                                          (setq-local tab-width 2
                                                      evil-normal-state-cursor (list nil))))
 
+  (add-hook 'mu4e-headers-search-hook '+mu4e-headers--adjust-fields-h)
 
   (add-hook 'mu4e-main-mode-hook #'+mu4e-init-h))
 
