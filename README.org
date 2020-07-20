@@ -7,20 +7,46 @@ The code in this repository is a mix between [[https://github.com/hlissner][Henr
 some of my personal changes. BTW, if you didn't check [[https://github.com/tecosaur][@tecosaur]]'s config, do yourself a favor, and
 spend some quality Elisp time there!
 
-* Features
+The core idea of this refactor is to simplify and beautify mu4e for users. I believe that all email
+client should step up and help (if not do it entirely) user to setup her accounts and start
+sending and receiving emails as fast as possible.
 
-TBD
+* Features / Roadmap
 
-* Dependencies
+What follows is a non exhaustive list of features currently not implemented on the main doom mu4e
+module. The checks on the checkbox indicate that the feature is already implemented in this
+repository.
 
-TBD
++ [X] Colorized accounts;
++ [X] All the icons for flags;
++ [X] Fix spacing on icons;
++ [X] Emil alerts;
++ [X] Better org-mode support to compose and send emails;
++ [X] Correct account for sending automatically set, or prompted
++ [X] Category icons;
++ [ ] Fix Gmail behavior per account;
++ [ ] Integrate @tecosaur's sync solution;
++ [ ] Sound on alarm;
++ [ ] Relative dates;
++ [ ] Thread folding;
++ [ ] Queueable and asynchronous message send;
++ [ ] Better xwidget integration;
++ [ ] Conversation view;
++ [ ] Doom doctor;
++ [ ] Install external dependencies;
++ [ ] Generate basic configuration for installed dependencies;
++ [ ] Expand Features section to include screenshots of all features;
++ [ ] GPG and  org-msg integration;
++ [ ] Replace mu4e main screen by a side panel with folders;
++ [ ] Match module colors to theme;
++ [ ] Document all functions;
 
 * Installation
 
-To install this module into your doom-emacs confir, follow these instructions:
+To install this module into your doom-emacs config, follow these instructions:
 
 ```sh
-cd ~/.config/doom
+cd $DOOMDIR
 mkdir modules
 cd modules
 git clone https://github.com/Townk/doom-module-email-mu4e.git email
@@ -29,6 +55,24 @@ git clone https://github.com/Townk/doom-module-email-mu4e.git email
 * Extras
 
 TBD
+
+** Fetching emails
+
+*** mbsync
+
+TBD
+
+*** offlineimap
+
+TBD
+
+*** goimapnotify
+
+TBD
+
+** Sending emails
+
+*** msmtp
 
 TBD
 
