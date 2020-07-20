@@ -21,13 +21,12 @@ mark. MSG-MARK is a symbol."
 
 (defun +mu4e--message-color-code-mark (msg)
   "TODO"
-  (let ((context (mu4e-context-determine msg))
-        (label (+mu4e--header-column-account msg)))
+  (let ((context (mu4e-context-determine msg)))
     (with~mu4e-context-vars context
         +mu4e-account-mark)))
 
 
-(defun +mu4e--headers-from (msg width)
+(defun +mu4e--headers-from (msg)
   "TODO"
   (let* ((context (mu4e-context-determine msg))
          (maildir (mu4e-message-field msg :maildir))
@@ -111,19 +110,14 @@ mark. MSG-MARK is a symbol."
                         (unless (s-blank-str-p replied-symbol)
                           (format " %s" replied-symbol))
                         (unless (s-blank-str-p forwarded-symbol)
-                          (format " %s" forwarded-symbol))
-                        ;; (when prefix-p
-                        ;;   "\t")
-                        ))
+                          (format " %s" forwarded-symbol))))
                (width (+mu4e--width-for-func '+mu4e--header-column-subject))
                (subject (s-replace-all '(("RE: " . "")
-                                         ("Re: " . "")) (mu4e-message-field msg :subject)))
-               (ellipsis "…"))
+                                         ("Re: " . "")) (mu4e-message-field msg :subject))))
           (concat
            (mu4e~headers-thread-prefix tinfo)
-           (s-truncate (- width 2) subject ellipsis)
-           prefix
-           )))))
+           subject
+           prefix)))))
 
 
 ;;;###autoload
@@ -131,39 +125,55 @@ mark. MSG-MARK is a symbol."
   "TODO"
   (let ((width (+mu4e--width-for-func '+mu4e--header-column-flags))
         (flags (mu4e~headers-flags-str (mu4e-message-field msg :flags))))
-    (concat
-     (s-pad-left (- width 2) " " flags)
-     ;; "\t"
-     )))
+    (s-pad-left (- width 2) " " flags)))
 
 
 ;;;###autoload
 (defun +mu4e--header-column-from (msg)
   "TODO"
-  (let ((width (+mu4e--width-for-func '+mu4e--header-column-from)))
+  (let* ((width (+mu4e--width-for-func '+mu4e--header-column-from)))
     (concat (when +mu4e-message-use-category
               (format "%s " (plist-get +mu4e-message-category-icons
                                        (funcall +mu4e-message-category-func msg))))
             (when +mu4e-account-color-coding
               (format "%s " (+mu4e--message-color-code-mark msg)))
-            (+mu4e--headers-from msg width))))
+            (+mu4e--headers-from msg))))
+
+
+;;;###autoload
+(defun +mu4e--header-column-recipnum (msg)
+  (propertize (format "%2d"
+                      (+ (length (mu4e-message-field msg :to))
+                         (length (mu4e-message-field msg :cc))))
+              'face 'mu4e-footer-face))
 
 
 ;;;###autoload
 (defun +mu4e--header-column-new-status (msg)
   "TODO"
-  (let ((flags (mu4e-message-field msg :flags)))
-    (cond
-     ((memq 'new flags)    (+mu4e--get-mark 'new))
-     ((memq 'unread flags) (+mu4e--get-mark 'unread))
-     (t                    " "))))
+  (let* ((flags (mu4e-message-field msg :flags))
+         (symbol (cond
+                  ((memq 'new flags)    (+mu4e--get-mark 'new))
+                  ((memq 'unread flags) (+mu4e--get-mark 'unread))
+                  (t                    " "))))
+    symbol))
 
 
 ;;;###autoload
 (defun +mu4e--header-column-account (msg)
   "TODO"
-  (let ((maildir (mu4e-message-field msg :maildir)))
-    (format "%s" (substring maildir 1 (string-match-p "/" maildir 1)))))
+  (let ((maildir (mu4e-message-field msg :maildir))
+        (context (mu4e-context-determine msg)))
+    (with~mu4e-context-vars context
+        (+mu4e-header--colorise (substring maildir 1 (string-match-p "/" maildir 1))
+                                :face +mu4e-account-face))))
+
+
+;;;###autoload
+(defun +mu4e--header-column-folder (msg)
+  (let ((maildir (mu4e-message-field msg :maildir))
+        (width (+mu4e--width-for-func '+mu4e--header-column-folder)))
+    (+mu4e-header--colorise (replace-regexp-in-string "\\`.*/" "" maildir))))
 
 
 ;;;###autoload
@@ -199,7 +209,7 @@ mark. MSG-MARK is a symbol."
        (t " ")))))
 
 
-(defun +mu4e-headers--string-size (str)
+(defun +mu4e-header--string-size (str)
   "Return the width in pixels of a string in the current
 window's default font. If the font is mono-spaced, this
 will also be the width of all other printable characters."
@@ -223,8 +233,8 @@ will also be the width of all other printable characters."
            (icon (if colour
                      (apply icon-set `(,name :face ,face :height ,height :v-adjust ,v-adjust))
                    (apply icon-set `(,name  :height ,height :v-adjust ,v-adjust))))
-           (icon-width (+mu4e-headers--string-size icon))
-           (space-width (+mu4e-headers--string-size " "))
+           (icon-width (+mu4e-header--string-size icon))
+           (space-width (+mu4e-header--string-size " "))
            (space-factor (- 2 (/ (float icon-width) space-width))))
       (concat (propertize " " 'display `(space . (:width ,space-factor))) icon))))
 

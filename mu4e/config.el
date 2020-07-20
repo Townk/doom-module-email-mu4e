@@ -31,7 +31,7 @@
   "A standart brown color for the accounot mark")
 
 
-;;
+
 ;;; Vars
 
 (defvar +mu4e-backend 'mbsync
@@ -85,7 +85,9 @@
   custom predicate defined by `+mu4e-message-category-func'")
 
 (setq +mu4e-account-emails '()
-      +mu4e-account-mark "")
+      +mu4e-account-mark ""
+      +mu4e-account-face nil
+      truncate-string-ellipsis "…")
 
 (when (featurep! :ui workspaces)
   (defvar +mu4e-workspace-name "*Email*"
@@ -101,11 +103,9 @@
 (defvar +mu4e-update-interval nil
   "How many seconds between mail retrivals.")
 
-;;
-;;; Functions
 
 
-;;
+
 ;;; Packages
 
 (use-package! mu4e
@@ -359,12 +359,6 @@
     :after #'mu4e-mark-execute-all
     (mu4e-headers-rerun-search))
 
-  ;; Wrap text in messages
-  (setq-hook! 'mu4e-view-mode-hook truncate-lines nil)
-  (add-hook! 'mu4e-headers-mode-hook #'(lambda ()
-                                         (setq-local tab-width 2
-                                                     evil-normal-state-cursor (list nil))))
-
 
   ;; Html mails might be better rendered in a browser
   (add-to-list 'mu4e-view-actions '("View in browser" . mu4e-action-view-in-browser))
@@ -374,13 +368,16 @@
   (when (fboundp 'imagemagick-register-types)
     (imagemagick-register-types))
 
-  (map! :map mu4e-headers-mode-map
-        :after mu4e
-        :v "*" #'mu4e-headers-mark-for-something
-        :v "!" #'mu4e-headers-mark-for-read
-        :v "?" #'mu4e-headers-mark-for-unread
-        :v "u" #'mu4e-headers-mark-for-unmark)
-  )
+  (map! :after mu4e
+        (:map mu4e-headers-mode-map
+         :v "*" #'mu4e-headers-mark-for-something
+         :v "!" #'mu4e-headers-mark-for-read
+         :v "?" #'mu4e-headers-mark-for-unread
+         :v "u" #'mu4e-headers-mark-for-unmark)
+
+        (:map mu4e-main-mode-map
+         :n "J" nil
+         :n "g" #'mu4e~headers-jump-to-maildir)))
 
 
 (use-package! mu4e-alert
@@ -551,19 +548,24 @@
       (b nil ((font-weight . "500") (color . ,theme-color)))
       (div nil (,@font (line-height . "12pt"))))))
 
-
-;;
+
 ;;; Hooks
 
-(add-hook 'mu4e-main-mode-hook #'+mu4e-init-h)
+(after! mu4e
+  (setq-hook! 'mu4e-view-mode-hook truncate-lines nil)
+  (add-hook! 'mu4e-headers-mode-hook #'(lambda ()
+                                         (setq-local tab-width 2
+                                                     evil-normal-state-cursor (list nil))))
+
+
+  (add-hook 'mu4e-main-mode-hook #'+mu4e-init-h))
+
 
 (add-to-list 'auto-mode-alist '("\\.\\(?:offlineimap\\|mbsync\\)rc\\'" . conf-mode))
 
-
-
-;;
+
 ;;; Gmail integration
-
+;;; TODO Need to make this configuration on a per account base.
 (when (featurep! +gmail)
   (after! mu4e
     ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
